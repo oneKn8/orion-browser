@@ -41,7 +41,7 @@ jobs:
                 }
               }
             }
-          ' -f owner='oneKn8' -f repo='Orion')
+          ' -f owner='oneKn8' -f repo='orion-browser')
 
           # Parse and sort RFC issues (titles containing [RFC])
           sorted_rfcs=$(echo "$issues" | jq -r --arg ISSUE_NUMBER "$ISSUE_NUMBER" '
