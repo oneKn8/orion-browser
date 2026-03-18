@@ -5,38 +5,44 @@
 - Base commit: 4d3225104176d
 - Location: /home/oneknight/chromium/src
 - Size: ~88GB (source + deps)
-- Status: Checked out at exact BASE_COMMIT
+- Status: Synced and patched
 
-## Patch Application (2026-03-18)
+## Patch Application
 - Total patches: 321
 - Applied successfully: 320 (99.7%)
-- Failed: 1 (manually resolved)
-- Failed patch: chrome/browser/BUILD.gn (applied manually)
+- Manually resolved: 1 (chrome/browser/BUILD.gn)
+- All Orion features present in Chromium source tree
 
-## Build Status
-- Resources: Copied successfully
-- Chromium replace: 3 files replaced
-- String replaces: 1,148 replacements across 2 files
-- GN configure: Pending (re-syncing deps for BASE_COMMIT)
-- Compilation: Not started yet
+## Build Configuration
+- GN configured: 29,021 targets from 4,552 files
+- Build type: release
+- Architecture: x64
+- Output: out/Default_x64
 
-## All Orion Features Applied
-- Core infrastructure (constants, prefs, switches)
-- Branding (version, strings, icons)
-- Server integration (server manager, updater, proxy)
-- Metrics system
-- Extension API (browserOS permission, side panel)
-- Extension OTA updater
-- Chrome importer (bookmarks, history, passwords, cookies, extensions)
-- Settings page (Orion prefs page)
-- DevTools protocol extensions (Bookmarks, History, Browser domains)
-- LLM chat side panel
-- LLM hub (Clash of GPTs)
-- Pin chat and hub to toolbar
-- Keyboard shortcuts
-- Vertical tabs
-- Chromium URL overrides
-- Agent v2 infobar
-- CDP API extensions
-- UI fixes
-- Manifest V2 extension support (via series patches)
+## Compilation Status
+- Progress: 21,225 / 56,818 targets (37%)
+- Status: PAUSED -- missing `gperf` system dependency
+- Build artifacts: 3.4GB in out/Default_x64/
+
+## To Resume Build
+
+```bash
+# Install missing dependency
+sudo apt install gperf
+
+# Resume compilation (incremental -- picks up from 37%)
+cd /home/oneknight/personal/orion-browser/packages/orion
+source .venv/bin/activate
+export PATH="$HOME/depot_tools:$PATH"
+python -m build.orion build --modules compile --build-type release --arch x64 --chromium-src $HOME/chromium/src
+```
+
+## After Build Completes
+
+```bash
+# Package for Linux
+python -m build.orion build --modules package_linux --build-type release --arch x64 --chromium-src $HOME/chromium/src
+
+# Binary will be at: $HOME/chromium/src/out/Default_x64/chrome
+# Test launch: $HOME/chromium/src/out/Default_x64/chrome --no-sandbox
+```
