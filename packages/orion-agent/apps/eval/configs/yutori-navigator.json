@@ -1,0 +1,22 @@
+{
+  "agent": {
+    "type": "yutori-navigator",
+    "apiKey": "YUTORI_API_KEY",
+    "screenSize": {
+      "width": 1280,
+      "height": 800
+    },
+    "turnLimit": 100
+  },
+  "dataset": "../data/test-set.jsonl",
+  "output_dir": "../results/yutori-navigator",
+  "num_workers": 1,
+  "restart_server_per_task": true,
+  "orion": {
+    "server_url": "http://127.0.0.1:9110"
+  },
+  "timeout_ms": 1200000,
+  "grader_api_key_env": "OPENROUTER_API_KEY",
+  "grader_base_url": "https://openrouter.ai/api/v1",
+  "grader_model": "openai/gpt-4.1"
+}

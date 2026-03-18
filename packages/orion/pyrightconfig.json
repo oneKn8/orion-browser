@@ -1,0 +1,11 @@
+{
+  "include": ["build"],
+  "exclude": ["**/__pycache__", "chromium_src", "chromium_src_bak", "third_party"],
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Darwin",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "reportMissingModuleSource": true,
+  "venvPath": ".",
+  "venv": ".venv"
+}

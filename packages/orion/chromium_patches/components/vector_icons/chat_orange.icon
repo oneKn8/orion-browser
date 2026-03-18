@@ -1,0 +1,54 @@
+diff --git a/components/vector_icons/chat_orange.icon b/components/vector_icons/chat_orange.icon
+new file mode 100644
+index 0000000000000..255a41ae79134
+--- /dev/null
++++ b/components/vector_icons/chat_orange.icon
+@@ -0,0 +1,48 @@
++// Copyright 2024 The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++CANVAS_DIMENSIONS, 960,
++FILL_RULE_NONZERO,
++MOVE_TO, 240, 560,
++R_H_LINE_TO, 320,
++R_V_LINE_TO, -80,
++H_LINE_TO, 240,
++R_V_LINE_TO, 80,
++CLOSE,
++R_MOVE_TO, 0, -120,
++R_H_LINE_TO, 480,
++R_V_LINE_TO, -80,
++H_LINE_TO, 240,
++R_V_LINE_TO, 80,
++CLOSE,
++R_MOVE_TO, 0, -120,
++R_H_LINE_TO, 480,
++R_V_LINE_TO, -80,
++H_LINE_TO, 240,
++R_V_LINE_TO, 80,
++CLOSE,
++MOVE_TO, 80, 880,
++R_V_LINE_TO, -720,
++R_QUADRATIC_TO, 0, -33, 23.5f, -56.5f,
++QUADRATIC_TO_SHORTHAND, 160, 80,
++R_H_LINE_TO, 640,
++R_QUADRATIC_TO, 33, 0, 56.5f, 23.5f,
++QUADRATIC_TO_SHORTHAND, 880, 160,
++R_V_LINE_TO, 480,
++R_QUADRATIC_TO, 0, 33, -23.5f, 56.5f,
++QUADRATIC_TO_SHORTHAND, 800, 720,
++H_LINE_TO, 240,
++LINE_TO, 80, 880,
++CLOSE,
++R_MOVE_TO, 126, -240,
++R_H_LINE_TO, 594,
++R_V_LINE_TO, -480,
++H_LINE_TO, 160,
++R_V_LINE_TO, 525,
++R_LINE_TO, 46, -45,
++CLOSE,
++R_MOVE_TO, -46, 0,
++R_V_LINE_TO, -480,
++R_V_LINE_TO, 480,
++CLOSE

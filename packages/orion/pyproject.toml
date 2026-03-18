@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orion"
+version = "0.0.1"
+description = "Orion Build System"
+requires-python = ">=3.12"
+dependencies = [
+  "click>=8.0.0",
+  "typer>=0.12.0",
+  "PyYAML>=5.4.1",
+  "requests>=2.25.1",
+  "boto3>=1.34.0",
+  "python-dotenv>=1.0.0",
+  "Pillow>=10.0.0",
+  "cryptography>=41.0.0",
+]
+
+[project.scripts]
+orion = "build.orion:app"
+
+[tool.setuptools]
+packages = [
+  "build",
+  "build.cli",
+  "build.common",
+  "build.modules",
+  "build.modules.resources",
+  "build.modules.patches",
+  "build.modules.setup",
+  "build.modules.package",
+  "build.modules.sign",
+  "build.modules.extract",
+  "build.modules.apply",
+  "build.modules.feature",
+  "build.modules.ota",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | env
+  | _build
+  | buck-out
+  | build
+  | dist
+  | chromium_src
+  | chromium_src_bak
+  | third_party
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_glob = ["env/*", "chromium_src/*", "chromium_src_bak/*", "third_party/*"]
+
+[dependency-groups]
+dev = ["ruff>=0.14.7", "pyright>=1.1.390"]

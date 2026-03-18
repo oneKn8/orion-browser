@@ -1,0 +1,25 @@
+{
+  "agent": {
+    "type": "single",
+    "provider": "openai-compatible",
+    "model": "accounts/fireworks/models/kimi-k2p5",
+    "apiKey": "FIREWORKS_API_KEY",
+    "baseUrl": "https://api.fireworks.ai/inference/v1",
+    "supportsImages": true
+  },
+  "dataset": "../data/webvoyager_e2e_test.jsonl",
+  "output_dir": "../results/tool-loop-webvoyager-test",
+  "num_workers": 3,
+  "orion": {
+    "server_url": "http://127.0.0.1:9110",
+    "base_cdp_port": 9010,
+    "base_server_port": 9110,
+    "base_extension_port": 9310,
+    "load_extensions": false,
+    "headless": true
+  },
+  "grader_api_key_env": "OPENROUTER_API_KEY",
+  "grader_base_url": "https://openrouter.ai/api/v1",
+  "grader_model": "openai/gpt-4.1",
+  "timeout_ms": 1200000
+}

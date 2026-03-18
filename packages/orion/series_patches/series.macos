@@ -1,0 +1,5 @@
+# macOS-specific patches
+#
+# These patches are applied only when building on macOS.
+# Paths are relative to the series_patches directory.
+

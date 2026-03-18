@@ -1,0 +1,552 @@
+/**
+ * Test script to validate the complete eval lifecycle
+ * Run with: bun apps/eval/scripts/test-lifecycle.ts
+ *
+ * Tests:
+ * 1. Orion app detection
+ * 2. Server start/stop
+ * 3. Extension connection with verification
+ * 4. Window create/close
+ * 5. Screenshot capture
+ * 6. Multiple tasks in sequence with server restart
+ */
+
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { Client } from '@modelcontextprotocol/sdk/client/index.js'
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import { type Subprocess, spawn, spawnSync } from 'bun'
+
+// Ports from config.dev.json - must match Orion launch args
+const EVAL_PORTS = {
+  cdp: 9005,
+  server: 9105, // http_mcp in config.dev.json
+  extension: 9305,
+} as const
+const MONOREPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..')
+const MCP_URL = `http://127.0.0.1:${EVAL_PORTS.server}/mcp`
+
+let currentServerPid: number | null = null
+
+// ============================================================================
+// Utility Functions (same as parallel-executor)
+// ============================================================================
+
+function killPort(port: number): void {
+  spawnSync({
+    cmd: ['sh', '-c', `lsof -ti:${port} | xargs kill -9 2>/dev/null || true`],
+  })
+}
+
+function isOrionAppRunning(): boolean {
+  const result = spawnSync({
+    cmd: ['sh', '-c', 'pgrep -f "Orion" 2>/dev/null || true'],
+  })
+  const output = result.stdout?.toString().trim() ?? ''
+  return output.length > 0
+}
+
+async function _killOrionApp(): Promise<void> {
+  console.log('  Killing Orion app...')
+  spawnSync({
+    cmd: ['sh', '-c', 'pkill -9 -f "Orion" 2>/dev/null || true'],
+  })
+  killPort(EVAL_PORTS.cdp)
+  for (let i = 0; i < 10; i++) {
+    if (!isOrionAppRunning()) return
+    await new Promise((r) => setTimeout(r, 500))
+  }
+}
+
+async function _launchOrionApp(): Promise<boolean> {
+  console.log(
+    `  Launching Orion (server disabled, CDP=${EVAL_PORTS.cdp}, Extension=${EVAL_PORTS.extension})...`,
+  )
+  spawnSync({
+    cmd: [
+      'open',
+      '-a',
+      'Orion',
+      '--args',
+      '--disable-orion-server',
+      `--remote-debugging-port=${EVAL_PORTS.cdp}`,
+      `--orion-cdp-port=${EVAL_PORTS.cdp}`,
+      `--orion-mcp-port=${EVAL_PORTS.server}`,
+      `--orion-extension-port=${EVAL_PORTS.extension}`,
+    ],
+  })
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 1000))
+    if (isOrionAppRunning()) {
+      await new Promise((r) => setTimeout(r, 8000))
+      return true
+    }
+  }
+  return false
+}
+
+async function waitForPortFree(
+  port: number,
+  maxAttempts = 30,
+): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const result = spawnSync({
+      cmd: ['sh', '-c', `lsof -ti:${port} 2>/dev/null`],
+    })
+    if (!result.stdout || result.stdout.toString().trim() === '') {
+      return true
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  return false
+}
+
+async function waitForServerHealth(
+  serverPort: number,
+  maxAttempts = 60,
+): Promise<boolean> {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${serverPort}/health`, {
+        signal: AbortSignal.timeout(1000),
+      })
+      if (response.ok) return true
+    } catch {
+      /* not ready */
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  return false
+}
+
+async function waitForExtension(
+  serverPort: number,
+  maxAttempts = 90,
+): Promise<boolean> {
+  let connectedCount = 0
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${serverPort}/extension-status`,
+        {
+          signal: AbortSignal.timeout(2000),
+        },
+      )
+      if (response.ok) {
+        const data = (await response.json()) as { extensionConnected?: boolean }
+        if (data.extensionConnected) {
+          connectedCount++
+          if (connectedCount >= 3) return true
+        } else {
+          connectedCount = 0
+        }
+      }
+    } catch {
+      connectedCount = 0
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  }
+  return false
+}
+
+async function startServer(): Promise<Subprocess> {
+  killPort(EVAL_PORTS.server)
+  killPort(EVAL_PORTS.extension)
+  await waitForPortFree(EVAL_PORTS.server, 30)
+  await waitForPortFree(EVAL_PORTS.extension, 30)
+
+  const serverProc = spawn({
+    cmd: [
+      'bun',
+      'apps/server/src/index.ts',
+      '--server-port',
+      String(EVAL_PORTS.server),
+      '--extension-port',
+      String(EVAL_PORTS.extension),
+      '--cdp-port',
+      String(EVAL_PORTS.cdp),
+    ],
+    cwd: MONOREPO_ROOT,
+    stdout: 'pipe',
+    stderr: 'pipe',
+    env: { ...process.env, NODE_ENV: 'development' },
+  })
+
+  currentServerPid = serverProc.pid
+  return serverProc
+}
+
+async function stopServer(proc: Subprocess): Promise<void> {
+  try {
+    proc.kill('SIGKILL')
+    await Promise.race([
+      proc.exited,
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+    ])
+  } catch {
+    /* ignore */
+  }
+  currentServerPid = null
+}
+
+async function callMcpTool(
+  name: string,
+  args: Record<string, unknown> = {},
+  timeoutMs = 60000,
+): Promise<{ success: boolean; result?: any; error?: string }> {
+  const client = new Client({ name: 'lifecycle-test', version: '1.0.0' })
+  const transport = new StreamableHTTPClientTransport(new URL(MCP_URL))
+
+  try {
+    await client.connect(transport)
+    const toolPromise = client.callTool({ name, arguments: args })
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Timeout after ${timeoutMs}ms`)),
+        timeoutMs,
+      ),
+    )
+    const result = await Promise.race([toolPromise, timeoutPromise])
+
+    if ((result as any).isError) {
+      const errorText =
+        (result as any).content?.find((c: any) => c.type === 'text')?.text ||
+        'Unknown error'
+      return { success: false, error: errorText }
+    }
+    return { success: true, result }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  } finally {
+    try {
+      await transport.close()
+    } catch {}
+  }
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+async function testOrionDetection(): Promise<boolean> {
+  console.log('\n=== Test 1: Orion App Detection ===')
+  const running = isOrionAppRunning()
+  console.log(`  Orion running: ${running}`)
+  if (!running) {
+    console.log('  ❌ Orion app is not running. Please start it.')
+    return false
+  }
+  console.log('  ✅ Orion app detected')
+  return true
+}
+
+async function testServerStartStop(): Promise<boolean> {
+  console.log('\n=== Test 2: Server Start/Stop ===')
+
+  console.log('  Starting server...')
+  const proc = await startServer()
+  console.log(`  Server PID: ${proc.pid}`)
+
+  console.log('  Waiting for health...')
+  const healthy = await waitForServerHealth(EVAL_PORTS.server, 30)
+  if (!healthy) {
+    console.log('  ❌ Server health check failed')
+    await stopServer(proc)
+    return false
+  }
+  console.log('  ✅ Server healthy')
+
+  console.log('  Waiting for extension...')
+  const extConnected = await waitForExtension(EVAL_PORTS.server, 60)
+  if (!extConnected) {
+    console.log('  ❌ Extension did not connect')
+    await stopServer(proc)
+    return false
+  }
+  console.log('  ✅ Extension connected')
+
+  console.log('  Stopping server...')
+  await stopServer(proc)
+  console.log('  ✅ Server stopped')
+
+  return true
+}
+
+async function testWindowLifecycle(): Promise<boolean> {
+  console.log('\n=== Test 3: Window Create/Close ===')
+
+  console.log('  Starting server...')
+  const proc = await startServer()
+
+  const healthy = await waitForServerHealth(EVAL_PORTS.server, 30)
+  if (!healthy) {
+    console.log('  ❌ Server health check failed')
+    await stopServer(proc)
+    return false
+  }
+
+  const extConnected = await waitForExtension(EVAL_PORTS.server, 60)
+  if (!extConnected) {
+    console.log('  ❌ Extension did not connect')
+    await stopServer(proc)
+    return false
+  }
+
+  console.log('  Creating window...')
+  const createResult = await callMcpTool('browser_create_window', {
+    url: 'https://example.com',
+    focused: false,
+  })
+
+  if (!createResult.success) {
+    console.log(`  ❌ Failed to create window: ${createResult.error}`)
+    await stopServer(proc)
+    return false
+  }
+
+  const windowId = createResult.result?.structuredContent?.windowId
+  const tabId = createResult.result?.structuredContent?.tabId
+  console.log(`  ✅ Window created: windowId=${windowId}, tabId=${tabId}`)
+
+  // Wait for page load
+  await new Promise((r) => setTimeout(r, 2000))
+
+  // Take screenshot
+  console.log('  Taking screenshot...')
+  const ssResult = await callMcpTool('browser_get_screenshot', {
+    tabId,
+    windowId,
+    size: 'small',
+  })
+
+  if (!ssResult.success) {
+    console.log(`  ❌ Screenshot failed: ${ssResult.error}`)
+  } else {
+    console.log('  ✅ Screenshot captured')
+  }
+
+  // Close window
+  console.log('  Closing window...')
+  const closeResult = await callMcpTool('browser_close_window', { windowId })
+  if (!closeResult.success) {
+    console.log(
+      `  ⚠️  Close window returned error (may be expected): ${closeResult.error}`,
+    )
+  } else {
+    console.log('  ✅ Window closed')
+  }
+
+  console.log('  Stopping server...')
+  await stopServer(proc)
+  console.log('  ✅ Server stopped')
+
+  return true
+}
+
+async function testMultipleTasksWithRestart(): Promise<boolean> {
+  console.log('\n=== Test 4: Multiple Tasks with Server Restart ===')
+
+  const tasks = [
+    { id: 'task-1', url: 'https://example.com' },
+    { id: 'task-2', url: 'https://google.com' },
+    { id: 'task-3', url: 'https://github.com' },
+  ]
+
+  let successCount = 0
+
+  for (const task of tasks) {
+    console.log(`\n  --- Task: ${task.id} ---`)
+
+    // Start server
+    console.log('  Starting server...')
+    const proc = await startServer()
+
+    const healthy = await waitForServerHealth(EVAL_PORTS.server, 30)
+    if (!healthy) {
+      console.log(`  ❌ Task ${task.id}: Server health failed`)
+      await stopServer(proc)
+      continue
+    }
+
+    const extConnected = await waitForExtension(EVAL_PORTS.server, 60)
+    if (!extConnected) {
+      console.log(`  ❌ Task ${task.id}: Extension not connected`)
+      await stopServer(proc)
+      continue
+    }
+
+    // Create window
+    const createResult = await callMcpTool('browser_create_window', {
+      url: task.url,
+      focused: false,
+    })
+
+    if (!createResult.success) {
+      console.log(
+        `  ❌ Task ${task.id}: Window creation failed - ${createResult.error}`,
+      )
+      await stopServer(proc)
+      continue
+    }
+
+    const windowId = createResult.result?.structuredContent?.windowId
+    console.log(`  Window created: ${windowId}`)
+
+    await new Promise((r) => setTimeout(r, 2000))
+
+    // Close window
+    await callMcpTool('browser_close_window', { windowId })
+    console.log(`  Window closed`)
+
+    // Stop server
+    await stopServer(proc)
+    console.log(`  Server stopped`)
+
+    successCount++
+    console.log(`  ✅ Task ${task.id} completed`)
+
+    // Delay between tasks
+    await new Promise((r) => setTimeout(r, 2000))
+  }
+
+  console.log(`\n  Results: ${successCount}/${tasks.length} tasks successful`)
+  return successCount === tasks.length
+}
+
+async function testExtensionReconnect(): Promise<boolean> {
+  console.log('\n=== Test 5: Extension Stability (30 seconds) ===')
+
+  console.log('  Starting server...')
+  const proc = await startServer()
+
+  const healthy = await waitForServerHealth(EVAL_PORTS.server, 30)
+  if (!healthy) {
+    console.log('  ❌ Server health check failed')
+    await stopServer(proc)
+    return false
+  }
+
+  const extConnected = await waitForExtension(EVAL_PORTS.server, 60)
+  if (!extConnected) {
+    console.log('  ❌ Extension did not connect')
+    await stopServer(proc)
+    return false
+  }
+
+  console.log('  Monitoring extension connection for 30 seconds...')
+  let disconnects = 0
+  const checkInterval = 2000
+  const totalChecks = 30000 / checkInterval
+
+  for (let i = 0; i < totalChecks; i++) {
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:${EVAL_PORTS.server}/extension-status`,
+        {
+          signal: AbortSignal.timeout(2000),
+        },
+      )
+      const data = (await response.json()) as { extensionConnected?: boolean }
+      if (!data.extensionConnected) {
+        disconnects++
+        console.log(
+          `  ⚠️  Extension disconnected at check ${i + 1}/${totalChecks}`,
+        )
+      }
+    } catch {
+      disconnects++
+      console.log(`  ⚠️  Failed to check extension at ${i + 1}/${totalChecks}`)
+    }
+    await new Promise((r) => setTimeout(r, checkInterval))
+  }
+
+  await stopServer(proc)
+
+  if (disconnects > 0) {
+    console.log(`  ❌ Extension had ${disconnects} disconnections`)
+    return false
+  }
+
+  console.log('  ✅ Extension stayed connected for 30 seconds')
+  return true
+}
+
+// ============================================================================
+// Main
+// ============================================================================
+
+async function main() {
+  console.log('='.repeat(60))
+  console.log('Eval Lifecycle Test Suite')
+  console.log('='.repeat(60))
+  console.log(`Server Port: ${EVAL_PORTS.server}`)
+  console.log(`Extension Port: ${EVAL_PORTS.extension}`)
+  console.log(`CDP Port: ${EVAL_PORTS.cdp}`)
+
+  const results: { name: string; passed: boolean }[] = []
+
+  // Test 1: Orion Detection
+  results.push({
+    name: 'Orion Detection',
+    passed: await testOrionDetection(),
+  })
+  if (!results[0].passed) {
+    console.log('\n❌ Cannot continue without Orion app running')
+    process.exit(1)
+  }
+
+  // Test 2: Server Start/Stop
+  results.push({
+    name: 'Server Start/Stop',
+    passed: await testServerStartStop(),
+  })
+
+  // Test 3: Window Lifecycle
+  results.push({
+    name: 'Window Lifecycle',
+    passed: await testWindowLifecycle(),
+  })
+
+  // Test 4: Multiple Tasks
+  results.push({
+    name: 'Multiple Tasks',
+    passed: await testMultipleTasksWithRestart(),
+  })
+
+  // Test 5: Extension Stability
+  results.push({
+    name: 'Extension Stability',
+    passed: await testExtensionReconnect(),
+  })
+
+  // Summary
+  console.log(`\n${'='.repeat(60)}`)
+  console.log('SUMMARY')
+  console.log('='.repeat(60))
+
+  const passed = results.filter((r) => r.passed).length
+  const failed = results.filter((r) => !r.passed).length
+
+  for (const r of results) {
+    console.log(`  ${r.passed ? '✅' : '❌'} ${r.name}`)
+  }
+
+  console.log(`\nTotal: ${passed} passed, ${failed} failed`)
+
+  if (failed > 0) {
+    process.exit(1)
+  }
+}
+
+main().catch((error) => {
+  console.error('Test suite failed:', error)
+  if (currentServerPid) {
+    try {
+      process.kill(currentServerPid, 'SIGKILL')
+    } catch {}
+  }
+  process.exit(1)
+})

@@ -1,0 +1,17 @@
+diff --git a/chrome/installer/mini_installer/chrome.release b/chrome/installer/mini_installer/chrome.release
+index 0f331c3e0f2a3..e16dcd326b97f 100644
+--- a/chrome/installer/mini_installer/chrome.release
++++ b/chrome/installer/mini_installer/chrome.release
+@@ -63,6 +63,12 @@ PrivacySandboxAttestationsPreloaded\privacy-sandbox-attestations.dat: %(VersionD
+ MEIPreload\manifest.json: %(VersionDir)s\MEIPreload\
+ MEIPreload\preloaded_data.pb: %(VersionDir)s\MEIPreload\
+ 
++#
++# Orion Server
++#
++OrionServer\default\resources\*.*: %(VersionDir)s\OrionServer\default\resources\
++OrionServer\default\resources\bin\*.*: %(VersionDir)s\OrionServer\default\resources\bin\
++
+ #
+ # IWA Key Distribution
+ #

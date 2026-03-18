@@ -1,0 +1,85 @@
+diff --git a/third_party/blink/public/devtools_protocol/domains/Bookmarks.pdl b/third_party/blink/public/devtools_protocol/domains/Bookmarks.pdl
+new file mode 100644
+index 0000000000000..717c1bfb4b9f8
+--- /dev/null
++++ b/third_party/blink/public/devtools_protocol/domains/Bookmarks.pdl
+@@ -0,0 +1,79 @@
++# Copyright 2026 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++#
++# Contributing to Chrome DevTools Protocol: https://goo.gle/devtools-contribution-guide-cdp
++
++domain Bookmarks
++  depends on Browser
++
++  experimental type BookmarkID extends string
++
++  experimental type BookmarkNodeType extends string
++    enum
++      url
++      folder
++
++  experimental type BookmarkNode extends object
++    properties
++      BookmarkID id
++      optional BookmarkID parentId
++      optional integer index
++      string title
++      optional string url
++      BookmarkNodeType type
++      # Milliseconds since epoch.
++      number dateAdded
++      # Milliseconds since epoch.
++      optional number dateLastUsed
++
++  # Get bookmarks. Returns flat list, always recursive.
++  # No folderId returns all bookmarks. With folderId returns all descendants of that folder.
++  experimental command getBookmarks
++    parameters
++      optional BookmarkID folderId
++    returns
++      array of BookmarkNode nodes
++
++  # Search bookmarks by title or URL substring.
++  experimental command searchBookmarks
++    parameters
++      string query
++      optional integer maxResults
++    returns
++      array of BookmarkNode results
++
++  # Create a bookmark or folder. Omit url to create a folder.
++  experimental command createBookmark
++    parameters
++      string title
++      # Omit for folder creation.
++      optional string url
++      # Parent folder ID. Defaults to Bookmarks Bar.
++      optional BookmarkID parentId
++      optional integer index
++    returns
++      BookmarkNode node
++
++  # Update title and/or URL of a bookmark.
++  experimental command updateBookmark
++    parameters
++      BookmarkID id
++      optional string title
++      optional string url
++    returns
++      BookmarkNode node
++
++  # Move a bookmark or folder to a new parent/position.
++  experimental command moveBookmark
++    parameters
++      BookmarkID id
++      optional BookmarkID parentId
++      optional integer index
++    returns
++      BookmarkNode node
++
++  # Remove a bookmark or folder. Always recursive for folders.
++  experimental command removeBookmark
++    parameters
++      BookmarkID id

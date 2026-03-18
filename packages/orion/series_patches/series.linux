@@ -1,0 +1,5 @@
+# Linux-specific patches
+#
+# These patches are applied only when building on Linux.
+# Paths are relative to the series_patches directory.
+

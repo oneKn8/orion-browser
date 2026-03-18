@@ -1,0 +1,17 @@
+diff --git a/third_party/blink/public/devtools_protocol/domains/Target.pdl b/third_party/blink/public/devtools_protocol/domains/Target.pdl
+index 8d8ead638ece0..57f63cbaa0879 100644
+--- a/third_party/blink/public/devtools_protocol/domains/Target.pdl
++++ b/third_party/blink/public/devtools_protocol/domains/Target.pdl
+@@ -33,6 +33,12 @@ domain Target
+       # Provides additional details for specific target types. For example, for
+       # the type of "page", this may be set to "prerender".
+       experimental optional string subtype
++      # Session-scoped tab id for targets associated with a browser tab.
++      # Present for page and frame targets; absent for workers, browser, etc.
++      experimental optional Browser.TabID tabId
++      # Browser window id containing the tab. Present when tabId is present
++      # and the tab is in a window.
++      experimental optional Browser.WindowID windowId
+ 
+   # A filter used by target query/discovery/auto-attach operations.
+   experimental type FilterEntry extends object

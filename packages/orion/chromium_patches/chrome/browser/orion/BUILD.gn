@@ -1,0 +1,27 @@
+diff --git a/chrome/browser/orion/BUILD.gn b/chrome/browser/orion/BUILD.gn
+new file mode 100644
+index 0000000000000..a7e89ea2d1c47
+--- /dev/null
++++ b/chrome/browser/orion/BUILD.gn
+@@ -0,0 +1,21 @@
++# Copyright 2024 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++# Master BUILD file for Orion components.
++# This groups together all Orion-related code that lives under
++# chrome/browser/orion/.
++
++group("orion") {
++  deps = [
++    "//chrome/browser/orion/core",
++    "//chrome/browser/orion/metrics",
++    "//chrome/browser/orion/server",
++  ]
++}
++
++# Bundled extensions are copied separately to ensure they're available
++# in the output directory at runtime.
++group("orion_bundled_extensions") {
++  deps = [ "//chrome/browser/orion/bundled_extensions" ]
++}

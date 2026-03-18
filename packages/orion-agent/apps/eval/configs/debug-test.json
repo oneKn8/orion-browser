@@ -1,0 +1,23 @@
+{
+  "agent": {
+    "type": "orchestrator-executor",
+    "orchestrator": {
+      "provider": "openrouter",
+      "model": "openai/gpt-4o",
+      "apiKey": "OPENROUTER_API_KEY",
+      "maxTurns": 3
+    },
+    "executor": {
+      "provider": "openrouter",
+      "model": "openai/gpt-4o",
+      "apiKey": "OPENROUTER_API_KEY"
+    }
+  },
+  "dataset": "../data/webvoyager_e2e_test.jsonl",
+  "output_dir": "../results/debug-test",
+  "num_workers": 1,
+  "orion": {
+    "server_url": "http://127.0.0.1:9110"
+  },
+  "timeout_ms": 90000
+}

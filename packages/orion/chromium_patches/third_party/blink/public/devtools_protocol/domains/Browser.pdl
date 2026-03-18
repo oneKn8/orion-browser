@@ -1,0 +1,279 @@
+diff --git a/third_party/blink/public/devtools_protocol/domains/Browser.pdl b/third_party/blink/public/devtools_protocol/domains/Browser.pdl
+index 6015a94554c21..a25c14c912689 100644
+--- a/third_party/blink/public/devtools_protocol/domains/Browser.pdl
++++ b/third_party/blink/public/devtools_protocol/domains/Browser.pdl
+@@ -8,6 +8,16 @@
+ domain Browser
+   experimental type BrowserContextID extends string
+   experimental type WindowID extends integer
++  experimental type TabID extends integer
++
++  experimental type WindowType extends string
++    enum
++      normal
++      popup
++      app
++      devtools
++      app_popup
++      picture_in_picture
+ 
+   # The state of the browser window.
+   experimental type WindowState extends string
+@@ -31,6 +41,228 @@ domain Browser
+       # The window state. Default to normal.
+       optional WindowState windowState
+ 
++  experimental type WindowInfo extends object
++    properties
++      WindowID windowId
++      WindowType windowType
++      Bounds bounds
++      boolean isActive
++      boolean isVisible
++      integer tabCount
++      optional TabID activeTabId
++      optional BrowserContextID browserContextId
++
++  experimental type TabInfo extends object
++    properties
++      TabID tabId
++      Target.TargetID targetId
++      string url
++      string title
++      boolean isActive
++      boolean isLoading
++      number loadProgress
++      boolean isPinned
++      boolean isHidden
++      optional WindowID windowId
++      optional integer index
++      optional BrowserContextID browserContextId
++      optional TabGroupID groupId
++
++  experimental type TabGroupID extends string
++
++  experimental type TabGroupInfo extends object
++    properties
++      TabGroupID groupId
++      WindowID windowId
++      string title
++      # Auto-assigned color name (grey, blue, red, yellow, green, pink, purple, cyan, orange).
++      string color
++      boolean collapsed
++      array of TabID tabIds
++
++  # --- Window Management ---
++
++  experimental command getWindows
++    returns
++      array of WindowInfo windows
++
++  experimental command getActiveWindow
++    returns
++      optional WindowInfo window
++
++  experimental command createWindow
++    parameters
++      optional string url
++      optional Bounds bounds
++      optional WindowType windowType
++      optional boolean hidden
++      optional BrowserContextID browserContextId
++    returns
++      WindowInfo window
++
++  experimental command closeWindow
++    parameters
++      WindowID windowId
++
++  experimental command activateWindow
++    parameters
++      WindowID windowId
++
++  experimental command showWindow
++    parameters
++      WindowID windowId
++
++  experimental command hideWindow
++    parameters
++      WindowID windowId
++
++  # --- Tab Management ---
++  # Commands that operate on a single tab accept both targetId and tabId.
++  # Exactly one must be provided.
++
++  experimental command getTabs
++    parameters
++      optional WindowID windowId
++      optional boolean includeHidden
++    returns
++      array of TabInfo tabs
++
++  experimental command getActiveTab
++    parameters
++      optional WindowID windowId
++    returns
++      optional TabInfo tab
++
++  experimental command getTabInfo
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++    returns
++      TabInfo tab
++
++  experimental command createTab
++    parameters
++      optional string url
++      optional WindowID windowId
++      optional integer index
++      optional boolean background
++      optional boolean pinned
++      optional boolean hidden
++      optional BrowserContextID browserContextId
++    returns
++      TabInfo tab
++
++  experimental command closeTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++
++  experimental command activateTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++
++  experimental command moveTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++      optional WindowID windowId
++      optional integer index
++    returns
++      TabInfo tab
++
++  experimental command duplicateTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++    returns
++      TabInfo tab
++
++  experimental command pinTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++    returns
++      TabInfo tab
++
++  experimental command unpinTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++    returns
++      TabInfo tab
++
++  experimental command showTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++      optional WindowID windowId
++      optional integer index
++      optional boolean activate
++    returns
++      TabInfo tab
++
++  experimental command hideTab
++    parameters
++      optional Target.TargetID targetId
++      optional TabID tabId
++    returns
++      TabInfo tab
++
++  # --- Tab Group Management ---
++
++  # Get all tab groups across all windows (or a specific window).
++  experimental command getTabGroups
++    parameters
++      optional WindowID windowId
++    returns
++      array of TabGroupInfo groups
++
++  # Create a new tab group from the given tabs. Color is auto-assigned.
++  experimental command createTabGroup
++    parameters
++      array of TabID tabIds
++      optional string title
++    returns
++      TabGroupInfo group
++
++  # Update a tab group's properties. Omitted fields are preserved.
++  experimental command updateTabGroup
++    parameters
++      TabGroupID groupId
++      optional string title
++      optional string color
++      optional boolean collapsed
++    returns
++      TabGroupInfo group
++
++  # Close all tabs in a group, destroying the group.
++  experimental command closeTabGroup
++    parameters
++      TabGroupID groupId
++
++  # Add tabs to an existing group.
++  experimental command addTabsToGroup
++    parameters
++      TabGroupID groupId
++      array of TabID tabIds
++    returns
++      TabGroupInfo group
++
++  # Remove tabs from their group (tabs remain open, just ungrouped).
++  experimental command removeTabsFromGroup
++    parameters
++      array of TabID tabIds
++
++  # Move a tab group to a new position or window.
++  experimental command moveTabGroup
++    parameters
++      TabGroupID groupId
++      optional WindowID windowId
++      optional integer index
++    returns
++      TabGroupInfo group
++
+   experimental type PermissionType extends string
+     enum
+       ar
+@@ -294,6 +526,28 @@ domain Browser
+       # position and size are returned.
+       Bounds bounds
+ 
++  # Get the tab that contains the devtools target.
++  experimental command getTabForTarget
++    parameters
++      # Devtools agent host id. If called as a part of the session, associated targetId is used.
++      optional Target.TargetID targetId
++    returns
++      # Tab id. Unique within the current browser session.
++      TabID tabId
++      # Browser window id that contains the tab.
++      WindowID windowId
++
++  # Get the devtools target that corresponds to the given tab.
++  experimental command getTargetForTab
++    parameters
++      # Tab id.
++      TabID tabId
++    returns
++      # Devtools agent host id.
++      Target.TargetID targetId
++      # Browser window id that contains the tab.
++      WindowID windowId
++
+   # Set position and/or size of the browser window.
+   experimental command setWindowBounds
+     parameters

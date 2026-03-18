@@ -1,0 +1,52 @@
+diff --git a/chrome/browser/devtools/BUILD.gn b/chrome/browser/devtools/BUILD.gn
+index 3ba666bf1e264..3655114cdaae9 100644
+--- a/chrome/browser/devtools/BUILD.gn
++++ b/chrome/browser/devtools/BUILD.gn
+@@ -34,6 +34,10 @@ if (enable_devtools_frontend) {
+     "protocol/emulation.h",
+     "protocol/page.cc",
+     "protocol/page.h",
++    "protocol/bookmarks.cc",
++    "protocol/bookmarks.h",
++    "protocol/history.cc",
++    "protocol/history.h",
+     "protocol/pwa.cc",
+     "protocol/pwa.h",
+     "protocol/security.cc",
+@@ -362,7 +366,11 @@ static_library("devtools") {
+   }
+ 
+   if (is_mac) {
+-    sources += [ "devtools_dock_tile_mac.mm" ]
++    sources += [
++      "devtools_dock_tile_mac.mm",
++      "protocol/browser_handler_mac.h",
++      "protocol/browser_handler_mac.mm",
++    ]
+   } else {
+     sources += [ "devtools_dock_tile.cc" ]
+   }
+@@ -379,7 +387,10 @@ static_library("devtools") {
+       "//components/media_router/browser",
+       "//components/media_router/common/mojom:media_router",
+       "//components/payments/content",
++      "//components/bookmarks/browser",
++      "//components/history/core/browser",
+       "//components/privacy_sandbox/privacy_sandbox_attestations",
++      "//components/tab_groups",
+       "//components/security_state/content",
+       "//components/subresource_filter/content/browser",
+       "//components/web_package",
+@@ -393,8 +404,12 @@ static_library("devtools") {
+     sources += [
+       "protocol/autofill_handler.cc",
+       "protocol/autofill_handler.h",
++      "protocol/bookmarks_handler.cc",
++      "protocol/bookmarks_handler.h",
+       "protocol/browser_handler.cc",
+       "protocol/browser_handler.h",
++      "protocol/history_handler.cc",
++      "protocol/history_handler.h",
+       "protocol/cast_handler.cc",
+       "protocol/cast_handler.h",
+       "protocol/emulation_handler.cc",

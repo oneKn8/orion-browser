@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discord
+    url: https://discord.gg/YKwjt5vuKr
+    about: Join our Discord for help and discussions!
+  - name: 💼 Slack
+    url: https://dub.sh/orion-slack
+    about: Join our Slack for help and queries!
+  - name: 💡 Feature Requests
+    url: https://github.com/oneKn8/orion-browser/issues/99
+    about: Have an idea? Share it here and vote on others
+  - name: 📚 Documentation
+    url: https://docs.orion-browser.local/
+    about: Find setup guides and learn how to use Orion

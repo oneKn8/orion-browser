@@ -1,0 +1,10 @@
+COMPANY_FULLNAME=Orion Development
+COMPANY_SHORTNAME=Orion Dev
+PRODUCT_FULLNAME=Orion Dev
+PRODUCT_SHORTNAME=Orion Dev
+PRODUCT_INSTALLER_FULLNAME=Orion Dev Installer
+PRODUCT_INSTALLER_SHORTNAME=Orion Dev Installer
+COPYRIGHT=Copyright @2025@ Orion Development. All rights reserved.
+MAC_BUNDLE_ID=com.orion.dev.Orion
+MAC_CREATOR_CODE=Cr24
+MAC_TEAM_ID=

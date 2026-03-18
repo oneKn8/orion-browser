@@ -1,0 +1,137 @@
+diff --git a/chrome/browser/orion/server/BUILD.gn b/chrome/browser/orion/server/BUILD.gn
+new file mode 100644
+index 0000000000000..85e9eaaba051c
+--- /dev/null
++++ b/chrome/browser/orion/server/BUILD.gn
+@@ -0,0 +1,131 @@
++# Copyright 2024 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++import("//build/config/chrome_build.gni")
++
++# Validate that required resources exist at build time
++# GN will fail at generation time if resources/bin/orion_server is missing
++_orion_binary_name = "orion_server"
++if (is_win) {
++  _orion_binary_name += ".exe"
++}
++
++action("validate_orion_resources") {
++  script = "validate_resources.py"
++  inputs = [ "resources/bin/${_orion_binary_name}" ]
++  outputs = [ "$target_gen_dir/orion_resources_validated" ]
++}
++
++source_set("server") {
++  sources = [
++    "orion_appcast_parser.cc",
++    "orion_appcast_parser.h",
++    "orion_server_config.cc",
++    "orion_server_config.h",
++    "orion_server_constants.h",
++    "orion_server_manager.cc",
++    "orion_server_manager.h",
++    "orion_server_prefs.cc",
++    "orion_server_prefs.h",
++    "orion_server_proxy.cc",
++    "orion_server_proxy.h",
++    "orion_server_updater.cc",
++    "orion_server_updater.h",
++    "orion_server_utils.cc",
++    "orion_server_utils.h",
++    "health_checker.h",
++    "health_checker_impl.cc",
++    "health_checker_impl.h",
++    "process_controller.h",
++    "process_controller_impl.cc",
++    "process_controller_impl.h",
++    "server_state_store.h",
++    "server_state_store_impl.cc",
++    "server_state_store_impl.h",
++    "server_updater.h",
++  ]
++
++  deps = [
++    "//base",
++    "//chrome/browser:browser_process",
++    "//chrome/browser/orion/metrics",
++    "//chrome/common",
++    "//components/prefs",
++    "//content/public/browser",
++    "//crypto",
++    "//net",
++    "//services/network/public/cpp",
++    "//services/network/public/mojom",
++    "//third_party/boringssl",
++    "//third_party/libxml:xml_reader",
++    "//third_party/zlib/google:zip",
++  ]
++}
++
++source_set("test_support") {
++  testonly = true
++  sources = [
++    "test/mock_health_checker.h",
++    "test/mock_implementations.cc",
++    "test/mock_process_controller.h",
++    "test/mock_server_state_store.h",
++    "test/mock_server_updater.h",
++  ]
++
++  deps = [
++    ":server",
++    "//base",
++    "//testing/gmock",
++  ]
++}
++
++source_set("unit_tests") {
++  testonly = true
++  sources = [
++    "orion_appcast_parser_unittest.cc",
++    "orion_server_manager_unittest.cc",
++    "orion_server_utils_unittest.cc",
++  ]
++
++  deps = [
++    ":server",
++    ":test_support",
++    "//base",
++    "//base/test:test_support",
++    "//components/prefs:test_support",
++    "//net",
++    "//testing/gmock",
++    "//testing/gtest",
++  ]
++}
++
++if (is_mac) {
++  import("//build/config/apple/symbols.gni")
++  import("//build/config/mac/mac_sdk.gni")
++
++  # Bundle data for macOS - recursively packages resources/ to Resources/OrionServer/default/
++  bundle_data("orion_resources_bundle") {
++    sources = [ "resources" ]
++    outputs = [ "{{bundle_resources_dir}}/OrionServer/default/{{source_file_part}}" ]
++    # TODO: Re-enable validation when resources/bin/orion_server is available
++    # deps = [ ":validate_orion_resources" ]
++  }
++} else {
++  # Copy for Windows/Linux - recursively packages resources/ to <exe_dir>/OrionServer/default/
++  copy("orion_resources_copy") {
++    sources = [ "resources" ]
++    outputs = [ "$root_out_dir/OrionServer/default/{{source_file_part}}" ]
++    # TODO: Re-enable validation when resources/bin/orion_server is available
++    # deps = [ ":validate_orion_resources" ]
++  }
++}
++
++# Group for all Orion server resources
++group("orion_server_resources") {
++  if (is_mac) {
++    deps = [ ":orion_resources_bundle" ]
++  } else {
++    deps = [ ":orion_resources_copy" ]
++  }
++}

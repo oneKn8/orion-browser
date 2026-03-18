@@ -1,0 +1,12 @@
+diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
+index c524bf95656e7..f639f0f590f87 100644
+--- a/chrome/utility/BUILD.gn
++++ b/chrome/utility/BUILD.gn
+@@ -106,6 +106,7 @@ static_library("utility") {
+         "importer/firefox_importer.cc",
+         "importer/firefox_importer.h",
+       ]
++      deps += [ "//chrome/utility/importer/orion" ]
+     }
+     if (is_mac) {
+       sources += [

@@ -1,0 +1,61 @@
+diff --git a/third_party/sparkle/BUILD.gn b/third_party/sparkle/BUILD.gn
+new file mode 100644
+index 0000000000000..9b174cb71e497
+--- /dev/null
++++ b/third_party/sparkle/BUILD.gn
+@@ -0,0 +1,55 @@
++# Copyright 2024 The Chromium Authors
++# Use of this source code is governed by a BSD-style license that can be
++# found in the LICENSE file.
++
++import("//build/config/mac/mac_sdk.gni")
++
++assert(is_mac)
++
++# Bundle data for Sparkle.framework - copies to app bundle
++bundle_data("sparkle_framework_bundle") {
++  sources = [ "Sparkle.framework" ]
++  outputs = [ "{{bundle_contents_dir}}/Frameworks/{{source_file_part}}" ]
++}
++
++# Config for component builds (test binaries, etc.)
++config("sparkle_link_test") {
++  _sparkle_dir = rebase_path(".", root_build_dir)
++
++  ldflags = [
++    "-rpath",
++    "@executable_path/../Frameworks",
++    # Also add direct path to third_party/sparkle for test binaries
++    "-rpath",
++    "@executable_path/" + _sparkle_dir,
++    "-F",
++    _sparkle_dir,
++    "-framework",
++    "Sparkle",
++  ]
++
++  cflags_objc = [ "-F" + _sparkle_dir ]
++  cflags_objcc = [ "-F" + _sparkle_dir ]
++}
++
++# Config for chrome_framework (the main shared library)
++config("sparkle_link_framework") {
++  _sparkle_dir = rebase_path(".", root_build_dir)
++
++  ldflags = [
++    "-rpath",
++    "@loader_path/Frameworks",
++    "-F",
++    _sparkle_dir,
++    "-framework",
++    "Sparkle",
++  ]
++
++  cflags_objc = [ "-F" + _sparkle_dir ]
++  cflags_objcc = [ "-F" + _sparkle_dir ]
++}
++
++# Target for code that uses Sparkle (provides headers only, no linking)
++group("sparkle_headers") {
++  public_configs = [ ":sparkle_link_framework" ]
++}

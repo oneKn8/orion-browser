@@ -1,0 +1,14 @@
+# Orion Series Patches (GNU Quilt format)
+#
+# List patches in order, one per line.
+# Paths are relative to this directory.
+#
+# Example:
+#   core/ungoogled-chromium/disable-crash-reporter.patch
+#   core/ungoogled-chromium/disable-google-host-detection.patch
+#   extra/ungoogled-chromium/add-flag-for-custom-ntp.patch
+#
+# Comments start with #
+# Inline comments: path/to/patch.patch # comment here
+
+ungoogle-chromium/extensions-manifestv2.patch

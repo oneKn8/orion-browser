@@ -1,0 +1,49 @@
+diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
+index 0753724487493..e27ad963c66b5 100644
+--- a/chrome/BUILD.gn
++++ b/chrome/BUILD.gn
+@@ -18,6 +18,7 @@ import("//build/config/win/manifest.gni")
+ import("//build/private_code_test/private_code_test.gni")
+ import("//build/toolchain/toolchain.gni")
+ import("//chrome/browser/buildflags.gni")
++import("//chrome/browser/sparkle_buildflags.gni")
+ import("//chrome/chrome_paks.gni")
+ import("//chrome/common/features.gni")
+ import("//chrome/process_version_rc_template.gni")
+@@ -369,6 +370,8 @@ if (!is_android && !is_mac) {
+     }
+ 
+     data_deps += [
++      "//chrome/browser/orion/bundled_extensions",
++      "//chrome/browser/orion/server:orion_server_resources",
+       "//chrome/browser/resources/media/mei_preload:component",
+       "//components/privacy_sandbox/privacy_sandbox_attestations/preload:component",
+       "//components/webapps/isolated_web_apps/preload:component",
+@@ -525,6 +528,7 @@ if (is_win) {
+       ":chrome_versioned_bundle_data",
+       "//base/allocator:early_zone_registration_apple",
+       "//build:branding_buildflags",
++      "//chrome/browser/orion/server:orion_server_resources",
+       "//chrome/common:buildflags",
+       "//chrome/common:version_header",
+     ]
+@@ -1197,10 +1201,19 @@ if (is_win) {
+       bundle_deps += [ ":preinstalled_apps" ]
+     }
+ 
++    # Orion bundled extensions for immediate install on first run
++    bundle_deps += [ "//chrome/browser/orion/bundled_extensions" ]
++
+     if (!use_static_angle) {
+       bundle_deps += [ ":angle_binaries" ]
+     }
+ 
++    if (enable_sparkle) {
++      bundle_deps += [ "//third_party/sparkle:sparkle_framework_bundle" ]
++      configs += [ "//third_party/sparkle:sparkle_link_framework" ]
++      framework_contents += [ "Frameworks" ]
++    }
++
+     configs += [ ":chrome_dll_symbol_order" ]
+     if (!is_component_build && !using_sanitizer) {
+       configs += [ ":chrome_dll_symbol_exports" ]

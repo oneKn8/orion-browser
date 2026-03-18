@@ -1,0 +1,8 @@
+diff --git a/chrome/browser/orion/bundled_extensions/.gitignore b/chrome/browser/orion/bundled_extensions/.gitignore
+new file mode 100644
+index 0000000000000..80c3b395c7af4
+--- /dev/null
++++ b/chrome/browser/orion/bundled_extensions/.gitignore
+@@ -0,0 +1,2 @@
++*.crx
++*.json

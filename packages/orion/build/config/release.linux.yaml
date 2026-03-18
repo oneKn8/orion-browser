@@ -1,0 +1,45 @@
+# Orion Linux Release Build Configuration
+#
+# Environment Variables:
+#   Use !env tag to reference environment variables:
+#     Example: chromium_src: !env CHROMIUM_SRC
+
+build:
+  type: release
+  architecture: x64  # Linux x64
+
+gn_flags:
+  file: build/config/gn/flags.linux.release.gn
+
+# Explicit module execution order
+modules:
+  # Phase 1: Setup
+  - clean
+  - git_setup
+
+  # Phase 2: Patches & Resources
+  - download_resources
+  - resources
+  - bundled_extensions
+  - chromium_replace
+  - string_replaces
+  - series_patches
+  - patches
+
+  # Phase 3: Build
+  - configure
+  - compile
+
+  # Phase 4: Package (Linux doesn't require code signing)
+  - package_linux
+
+  # Phase 5: Upload
+  - upload
+
+# Required environment variables
+# Note: CHROMIUM_SRC can be provided via --chromium-src CLI flag, YAML config, or env var
+# Linux release builds don't require code signing, only upload
+
+# Notification settings
+notifications:
+  slack: true
