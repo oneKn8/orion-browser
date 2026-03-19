@@ -18,7 +18,7 @@ jobs:
       - name: Update top issues list
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: 169
+          ISSUE_NUMBER: 1
         run: |
           #!/bin/bash
           set -e
